@@ -21,6 +21,7 @@ Open your terminal or command prompt and clone the repository using the followin
 
 ```bash
 git clone https://github.com/gavinlampkin/Chess-Game.git
+```bash
 
 ### 2. Navigate to the Project Directory
 
