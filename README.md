@@ -60,5 +60,5 @@ If you prefer using Visual Studio:
 
 1.  Open Visual Studio.
 2.  Select **File > Open > Project/Solution.**
-3.  Navigate to the cloned repository directory and open the **.csproj** or **.sln** file.
+3.  Navigate to the cloned repository directory and open the **.sln** file.
 
