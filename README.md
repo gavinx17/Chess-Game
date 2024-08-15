@@ -21,9 +21,44 @@ Open your terminal or command prompt and clone the repository using the followin
 
 ```bash
 git clone https://github.com/gavinlampkin/Chess-Game.git
-```bash
+```
 
 ### 2. Navigate to the Project Directory
 
+Change into the directory of the cloned repository:
+
 ```bash
 cd Chess-Game
+```
+
+### 3. Restore Dependencies
+
+Before building the project, restore the required dependencies. Run:
+
+```bash
+dotnet restore
+```
+
+### 4. Build the Project
+
+Build the project using the following command:
+
+```bash
+dotnet build
+```
+
+### 5. Run the Application
+
+Execute the following command to run the application:
+```bash
+dotnet run
+```
+
+### 6. (Optional) Open in Visual Studio
+
+If you prefer using Visual Studio:
+
+1.  Open Visual Studio.
+2.  Select **File > Open > Project/Solution.**
+3.  Navigate to the cloned repository directory and open the **.csproj** or **.sln** file.
+
