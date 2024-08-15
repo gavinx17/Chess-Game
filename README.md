@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Chess Game** repository contains a C# implementation of a classic chess game. This repository includes all the necessary files to build and run the application.
+The **Chess Game** repository contains a C# implementation of a classic chess game with the ability to win and restart. This repository includes all the necessary files to build and run the application.
 
 ## Prerequisites
 
@@ -21,3 +21,8 @@ Open your terminal or command prompt and clone the repository using the followin
 
 ```bash
 git clone https://github.com/gavinlampkin/Chess-Game.git
+
+### 2. Navigate to the Project Directory
+
+```bash
+cd Chess-Game
