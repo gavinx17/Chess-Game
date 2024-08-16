@@ -147,11 +147,21 @@ namespace ChessUI
 
         private void ShowHighlights()
         {
-            Color color = Color.FromArgb(150, 125, 255, 125);
+            Color colorWhite = Color.FromRgb(255, 255, 255);
+            Color colorBlack = Color.FromRgb(0, 0, 0);
 
             foreach (Position to in moveCache.Keys)
             {
-                hightlights[to.Row, to.Column].Fill = new SolidColorBrush(color);
+                if (gameState.CurrentPlayer == Player.White)
+                {
+                    hightlights[to.Row, to.Column].Fill = new SolidColorBrush(colorWhite);
+                    hightlights[to.Row, to.Column].Opacity = 0.3;
+                }
+                else
+                {
+                    hightlights[to.Row, to.Column].Fill = new SolidColorBrush(colorBlack);
+                    hightlights[to.Row, to.Column].Opacity = 0.3;
+                }
             }
         }
 
