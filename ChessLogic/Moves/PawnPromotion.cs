@@ -28,6 +28,8 @@
         }
         public override void Execute(Board board)
         {
+            // FIXME: ADD SCORE FOR CAPTURING A PIECE AND REFER TO 
+            // THE SetPieceValues IN THE GAMESTATE CLASS.
             Piece pawn = board[FromPos];
             board[FromPos] = null;
 

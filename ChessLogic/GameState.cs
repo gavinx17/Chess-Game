@@ -7,6 +7,7 @@
 
         public Result Result { get; private set; } = null;
 
+
         public GameState(Player player, Board board)
         {
             CurrentPlayer = player;

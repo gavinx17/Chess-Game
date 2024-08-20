@@ -14,11 +14,10 @@ namespace ChessUI
     {
         private readonly Image[,] pieceImages = new Image[8, 8];
         private readonly Rectangle[,] hightlights = new Rectangle[8, 8];
-        private readonly Dictionary<Position, Move> moveCache = new Dictionary<Position, Move>();
+        private readonly Dictionary<Position, Move> moveCache = new();
 
         private GameState gameState;
         private Position selectedPos = null;
-
         public MainWindow()
         {
             InitializeComponent();
@@ -66,14 +65,9 @@ namespace ChessUI
             Position pos = ToSquarePosition(point);
 
             if (selectedPos == null)
-            {
                 OnFromPositionSelected(pos);
-
-            }
             else
-            {
                 OnToPositionSelected(pos);
-            }
         }
 
         private void OnFromPositionSelected(Position pos)
@@ -155,12 +149,12 @@ namespace ChessUI
                 if (gameState.CurrentPlayer == Player.White)
                 {
                     hightlights[to.Row, to.Column].Fill = new SolidColorBrush(colorWhite);
-                    hightlights[to.Row, to.Column].Opacity = 0.3;
+                    hightlights[to.Row, to.Column].Opacity = 0.4;
                 }
                 else
                 {
                     hightlights[to.Row, to.Column].Fill = new SolidColorBrush(colorBlack);
-                    hightlights[to.Row, to.Column].Opacity = 0.3;
+                    hightlights[to.Row, to.Column].Opacity = 0.4;
                 }
             }
         }
