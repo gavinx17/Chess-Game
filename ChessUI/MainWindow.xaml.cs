@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Windows;
@@ -57,68 +58,103 @@ namespace ChessUI
             }
         }
 
+        private void SetCursor(Player player)
+        {
+            if (player == Player.White)
+                Cursor = ChessCursors.WhiteCursor;
+            else
+                Cursor = ChessCursors.BlackCursor;
+        }
+
         private void BoardGrid_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (IsMenuOnScreen())
                 return;
-            Point point = e.GetPosition(BoardGrid);
-            Position pos = ToSquarePosition(point);
 
-            if (selectedPos == null)
-                OnFromPositionSelected(pos);
-            else
-                OnToPositionSelected(pos);
+            // Get the clicked position
+            Point point = e.GetPosition(BoardGrid);
+            Position clickedPos = ToSquarePosition(point);
+
+            // Handle human (white) move
+            if (gameState.CurrentPlayer == Player.White)
+            {
+                HandlePlayerMove(clickedPos);
+
+                // After white (human) moves, check for game over
+                if (gameState.IsGameOver())
+                {
+                    ShowGameOver();
+                    return;
+                }
+            }
+            // Now it's AI's turn (Black player)
+            HandleAIMove();
         }
 
-        private void OnFromPositionSelected(Position pos)
+        private void HandlePlayerMove(Position clickedPos)
         {
-            IEnumerable<Move> LegalMoves = gameState.LegalMovesForPiece(pos);
-            if (LegalMoves.Any())
+            gameState.CheckForGameOver();
+
+            // After the AI move, check if the game is over
+            if (gameState.IsGameOver())
             {
-                selectedPos = pos;
-                CacheMoves(LegalMoves);
+                ShowGameOver();
+            }
+            if (selectedPos == null)
+            {
+                // Select the piece at the clicked position
+                selectedPos = clickedPos;
+                moveCache.Clear();
+
+                foreach (Move move in gameState.LegalMovesForPiece(selectedPos))
+                {
+                    moveCache[move.ToPos] = move;
+                }
+
                 ShowHighlights();
             }
-        }
-
-        private void OnToPositionSelected(Position pos)
-        {
-            selectedPos = null;
-            HideHighlights();
-
-            if (moveCache.TryGetValue(pos, out Move move))
+            else
             {
-                if (move.Type == MoveType.Promote)
-                    HandlePromotion(move.FromPos, move.ToPos);
+                // Execute the player's move if valid
+                if (moveCache.ContainsKey(clickedPos))
+                {
+
+                    Move playerMove = moveCache[clickedPos];
+                    playerMove.Execute(gameState.Board);
+
+                    DrawBoard(gameState.Board);
+                    selectedPos = null;
+                    HideHighlights();
+                    gameState.CurrentPlayer = Player.Black;
+                    // Switch to the next turn (which will be AI's if it's black's turn)
+                }
                 else
-                    HandleMove(move);
+                {
+                    selectedPos = null;
+                    HideHighlights();
+                }
+                // Switch back to White player (human)
             }
         }
 
-        private void HandlePromotion(Position from, Position to)
+        public void HandleAIMove()
         {
-            pieceImages[to.Row, to.Column].Source = Images.GetImage(gameState.CurrentPlayer, PieceType.Pawn);
-            pieceImages[from.Row, from.Column].Source = null;
-
-            PromotionMenu promMenu = new PromotionMenu(gameState.CurrentPlayer);
-            MenuContainer.Content = promMenu;
-
-            promMenu.PieceSelected += type =>
+            if (gameState.CurrentPlayer == Player.Black)
             {
-                MenuContainer.Content = null;
-                Move promMove = new PawnPromotion(from, to, type);
-                HandleMove(promMove);
-            };
-        }
+                gameState.CheckForGameOver();
 
-        private void HandleMove(Move move)
-        {
-            gameState.MakeMove(move);
-            DrawBoard(gameState.Board);
-            SetCursor(gameState.CurrentPlayer);
+                // After the AI move, check if the game is over
+                if (gameState.IsGameOver())
+                {
+                    ShowGameOver();
+                }
+                Move bestMove = gameState.GetBestMove(3);  // Minimax AI with depth 3
+                bestMove.Execute(gameState.Board);
 
-            if (gameState.IsGameOver())
-                ShowGameOver();
+                DrawBoard(gameState.Board);  // Update the UI after AI move
+                gameState.CurrentPlayer = Player.White;
+                SetCursor(gameState.CurrentPlayer);  // Set the cursor back to white
+            }
         }
 
         private Position ToSquarePosition(Point point)
@@ -167,20 +203,12 @@ namespace ChessUI
             }
         }
 
-        private void SetCursor(Player player)
-        {
-            if (player == Player.White)
-                Cursor = ChessCursors.WhiteCursor;
-            else
-                Cursor = ChessCursors.BlackCursor;
-        }
-
         private bool IsMenuOnScreen()
         {
             return MenuContainer.Content != null;
         }
 
-        private void ShowGameOver()
+        public void ShowGameOver()
         {
             GameOverMenu gameOverMenu = new GameOverMenu(gameState);
             MenuContainer.Content = gameOverMenu;
