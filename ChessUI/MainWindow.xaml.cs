@@ -99,6 +99,7 @@ namespace ChessUI
             if (gameState.IsGameOver())
             {
                 ShowGameOver();
+                return;
             }
             if (selectedPos == null)
             {
@@ -147,6 +148,7 @@ namespace ChessUI
                 if (gameState.IsGameOver())
                 {
                     ShowGameOver();
+                    return;
                 }
                 Move bestMove = gameState.GetBestMove(3);  // Minimax AI with depth 3
                 bestMove.Execute(gameState.Board);
