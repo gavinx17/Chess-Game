@@ -18,6 +18,12 @@ namespace ChessLogic
             Board = board;
         }
 
+        public PieceType getPieceFromPos(Position pos)
+        {
+            Piece piece = Board[pos.Row, pos.Column];
+            return piece.Type;
+        }
+
         public void NextTurn()
         {
             // Switch the player to the other side
@@ -126,15 +132,20 @@ namespace ChessLogic
         }
         public Move GetBestMove(int depth)
         {
+            int score = 0;
             Move bestMove = null;
             int bestScore = int.MinValue;
+            List<Move> captures = new List<Move>();
 
             foreach (Move move in GetAllLegalMoves())
             {
+                score = 0;
                 GameState copy = this.Copy();
                 move.Execute(copy.Board);
-
-                int score = Minimax(copy, depth - 1, false);  // Run minimax for Black's turn
+                if (move.ToPos != null)
+                    captures.Add(move);
+                else
+                    score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);  // Run minimax for Black's turn
 
                 if (score > bestScore)
                 {
@@ -142,12 +153,23 @@ namespace ChessLogic
                     bestMove = move;
                 }
             }
-
+            if (captures.Count > 0)
+            {
+                foreach (Move move in captures)
+                {
+                    score = (GetPieceValue(getPieceFromPos(move.FromPos), move.ToPos));
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+            }
             return bestMove;
         }
 
 
-        private int Minimax(GameState state, int depth, bool isMaximizingPlayer)
+        private int Minimax(GameState state, int depth, bool isMaximizingPlayer, int alpha, int beta)
         {
             if (depth == 0 || state.IsGameOver())
                 return state.EvaluateBoard();
@@ -159,8 +181,11 @@ namespace ChessLogic
                 {
                     GameState copy = state.Copy();
                     move.Execute(copy.Board);
-                    int eval = Minimax(copy, depth - 1, false);
+                    int eval = Minimax(copy, depth - 1, false, alpha, beta);
                     maxEval = Math.Max(maxEval, eval);
+                    alpha = Math.Max(alpha, maxEval);
+                    if (beta <= alpha)
+                        break;
                 }
                 return maxEval;
             }
@@ -171,8 +196,11 @@ namespace ChessLogic
                 {
                     GameState copy = state.Copy();
                     move.Execute(copy.Board);
-                    int eval = Minimax(copy, depth - 1, true);
+                    int eval = Minimax(copy, depth - 1, true, alpha, beta);
                     minEval = Math.Min(minEval, eval);
+                    beta = Math.Min(beta, minEval);
+                    if (beta <= alpha)
+                        break;
                 }
                 return minEval;
             }
@@ -190,9 +218,9 @@ namespace ChessLogic
                     0,   0,   0,   0,   0,   0,  0,   0
             },
             {   // Knight
-                -167, -89, -34, -49,  61, -97, -15, -107,
+                -167, -15, -34, -49,  61, -97, -15, -107,
                 -73, -41,  72,  36,  23,  62,   7,  -17,
-                -47,  60,  37,  65,  84, 129,  73,   44,
+                -47,  60,  37,  65,  84, 94,  73,   44,
                 -9,  17,  19,  53,  37,  69,  18,   22,
                 -13,   4,  16,  13,  28,  19,  21,   -8,
                 -23,  -9,  12,  10,  19,  17,  25,  -16,

@@ -75,12 +75,10 @@ namespace ChessUI
             Point point = e.GetPosition(BoardGrid);
             Position clickedPos = ToSquarePosition(point);
 
-            // Handle human (white) move
             if (gameState.CurrentPlayer == Player.White)
             {
                 HandlePlayerMove(clickedPos);
 
-                // After white (human) moves, check for game over
                 if (gameState.IsGameOver())
                 {
                     ShowGameOver();
@@ -95,7 +93,6 @@ namespace ChessUI
         {
             gameState.CheckForGameOver();
 
-            // After the AI move, check if the game is over
             if (gameState.IsGameOver())
             {
                 ShowGameOver();
@@ -103,7 +100,6 @@ namespace ChessUI
             }
             if (selectedPos == null)
             {
-                // Select the piece at the clicked position
                 selectedPos = clickedPos;
                 moveCache.Clear();
 
@@ -116,7 +112,6 @@ namespace ChessUI
             }
             else
             {
-                // Execute the player's move if valid
                 if (moveCache.ContainsKey(clickedPos))
                 {
 
@@ -134,7 +129,6 @@ namespace ChessUI
                     selectedPos = null;
                     HideHighlights();
                 }
-                // Switch back to White player (human)
             }
         }
 
@@ -144,7 +138,6 @@ namespace ChessUI
             {
                 gameState.CheckForGameOver();
 
-                // After the AI move, check if the game is over
                 if (gameState.IsGameOver())
                 {
                     ShowGameOver();
