@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics.Metrics;
+using static System.Formats.Asn1.AsnWriter;
+using System.Text.RegularExpressions;
 
 namespace ChessLogic
 {
@@ -63,6 +65,71 @@ namespace ChessLogic
             return newGameState;
         }
 
+        public Dictionary<PieceType, int> CountPieces(Board board)
+        {
+            Dictionary<PieceType, int> count = null;
+            if (CurrentPlayer == Player.White)
+            {
+                IEnumerable<Position> whitePositions = board.PiecePositionsFor(CurrentPlayer);
+                IEnumerable<Piece> whitePieces = Position.GetPieces(whitePositions, board);
+                foreach (Piece piece in whitePieces)
+                {
+                    if (piece.Color == Player.White)
+                    {
+                        switch (piece.Type)
+                        {
+                            case (PieceType.Pawn):
+                                count[PieceType.Pawn] += 1;
+                                continue;
+                            case PieceType.Knight:
+                                count[PieceType.Knight] += 1;
+                                continue;
+                            case PieceType.Bishop:
+                                count[PieceType.Bishop] += 1;
+                                continue;
+                            case PieceType.Rook:
+                                count[PieceType.Rook] += 1;
+                                continue;
+                            case PieceType.Queen:
+                                count[PieceType.Queen] += 1;
+                                continue;
+                        }
+                    }
+                }
+                return count;
+            }
+            else
+            {
+                IEnumerable<Position> blackPositions = board.PiecePositionsFor(CurrentPlayer);
+                IEnumerable<Piece> blackPieces = Position.GetPieces(blackPositions, board);
+                foreach (Piece piece in blackPieces)
+                {
+                    if (piece.Color == Player.Black)
+                    {
+                        switch (piece.Type)
+                        {
+                            case (PieceType.Pawn):
+                                count[PieceType.Pawn] += 1;
+                                continue;
+                            case PieceType.Knight:
+                                count[PieceType.Knight] += 1;
+                                continue;
+                            case PieceType.Bishop:
+                                count[PieceType.Bishop] += 1;
+                                continue;
+                            case PieceType.Rook:
+                                count[PieceType.Rook] += 1;
+                                continue;
+                            case PieceType.Queen:
+                                count[PieceType.Queen] += 1;
+                                continue;
+                        }
+                    }
+                }
+                return count;
+            }
+        }
+
         public IEnumerable<Move> AllLegalMoves(Player player)
         {
             IEnumerable<Move> moveCanidates = Board.PiecePositionsFor(player).SelectMany(pos =>
@@ -119,6 +186,16 @@ namespace ChessLogic
 
         private int GetPieceValue(PieceType type, Position pos)
         {
+            wp = len(board.pieces(chess.PAWN, chess.WHITE))
+            bp = len(board.pieces(chess.PAWN, chess.BLACK))
+            wn = len(board.pieces(chess.KNIGHT, chess.WHITE))
+            bn = len(board.pieces(chess.KNIGHT, chess.BLACK))
+            wb = len(board.pieces(chess.BISHOP, chess.WHITE))
+            bb = len(board.pieces(chess.BISHOP, chess.BLACK))
+            wr = len(board.pieces(chess.ROOK, chess.WHITE))
+            br = len(board.pieces(chess.ROOK, chess.BLACK))
+            wq = len(board.pieces(chess.QUEEN, chess.WHITE))
+            bq = len(board.pieces(chess.QUEEN, chess.BLACK))
             switch (type)
             {
                 case PieceType.Pawn: return pieceSquareScore[0, pos.Row * 8 + pos.Column];
@@ -139,14 +216,12 @@ namespace ChessLogic
 
             foreach (Move move in GetAllLegalMoves())
             {
-                score = 0;
                 GameState copy = this.Copy();
                 move.Execute(copy.Board);
-                if (move.ToPos != null)
+                if (move.IsLegal(this.Board) && move.ToPos != null)
                     captures.Add(move);
-                else
-                    score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);  // Run minimax for Black's turn
-
+                score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);  // Run minimax for Black's turn
+            
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -154,20 +229,26 @@ namespace ChessLogic
                 }
             }
             if (captures.Count > 0)
+                bestMove = FindBestCapture(captures);
+            return bestMove;
+        }
+
+        public Move FindBestCapture(List<Move> captures)
+        {
+            int bestScore = 0;
+            Move bestMove = null;
+            int score = 0;
+            foreach (Move move in captures)
             {
-                foreach (Move move in captures)
+                score = GetPieceValue(getPieceFromPos(move.FromPos), move.ToPos);
+                if (score > bestScore)
                 {
-                    score = (GetPieceValue(getPieceFromPos(move.FromPos), move.ToPos));
-                    if (score > bestScore)
-                    {
-                        bestScore = score;
-                        bestMove = move;
-                    }
+                    bestScore = score;
+                    bestMove = move;
                 }
             }
             return bestMove;
         }
-
 
         private int Minimax(GameState state, int depth, bool isMaximizingPlayer, int alpha, int beta)
         {

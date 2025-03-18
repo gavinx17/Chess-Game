@@ -20,6 +20,15 @@
                    Row == position.Row &&
                    Column == position.Column;
         }
+        public static IEnumerable<Piece> GetPieces(IEnumerable<Position> positions, Board board)
+        {
+            foreach (Position pos in positions)
+            {
+                yield return (Piece)board[pos];
+            }
+
+        }
+
 
         public override int GetHashCode()
         {
