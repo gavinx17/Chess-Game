@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Drawing;
+using System.Runtime.CompilerServices;
 
 namespace ChessLogic
 {
@@ -6,10 +7,12 @@ namespace ChessLogic
     {
         private readonly Piece[,] pieces = new Piece[8, 8];
 
+        public readonly Color BoardColor;
+
         public Piece this[int row, int col]
         {
             get { return pieces[row, col]; }
-            set { pieces[row, col] =  value; }
+            set { pieces[row, col] = value; }
         }
 
         public Piece this[Position pos]
@@ -45,7 +48,7 @@ namespace ChessLogic
             this[7, 6] = new Knight(Player.White);
             this[7, 7] = new Rook(Player.White);
 
-            for(int i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 this[1, i] = new Pawn(Player.Black);
                 this[6, i] = new Pawn(Player.White);
@@ -64,13 +67,13 @@ namespace ChessLogic
 
         public IEnumerable<Position> PiecePositions()
         {
-            for(int r=0;r< 8; r++)
+            for (int r = 0; r < 8; r++)
             {
-                for(int c=0;c< 8;c++)
+                for (int c = 0; c < 8; c++)
                 {
                     Position pos = new Position(r, c);
 
-                    if(!IsEmpty(pos))
+                    if (!IsEmpty(pos))
                         yield return pos;
                 }
             }

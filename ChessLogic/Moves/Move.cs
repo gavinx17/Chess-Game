@@ -7,6 +7,8 @@ namespace ChessLogic
         public abstract MoveType Type { get; }
         public abstract Position FromPos { get; }
         public abstract Position ToPos { get; }
+        public PieceType PieceType { get; internal set; }
+
         public abstract void Execute(Board board);
 
         public virtual bool IsLegal(Board board)

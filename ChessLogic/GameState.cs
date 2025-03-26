@@ -65,70 +65,6 @@ namespace ChessLogic
             return newGameState;
         }
 
-        public Dictionary<PieceType, int> CountPieces(Board board)
-        {
-            Dictionary<PieceType, int> count = null;
-            if (CurrentPlayer == Player.White)
-            {
-                IEnumerable<Position> whitePositions = board.PiecePositionsFor(CurrentPlayer);
-                IEnumerable<Piece> whitePieces = Position.GetPieces(whitePositions, board);
-                foreach (Piece piece in whitePieces)
-                {
-                    if (piece.Color == Player.White)
-                    {
-                        switch (piece.Type)
-                        {
-                            case (PieceType.Pawn):
-                                count[PieceType.Pawn] += 1;
-                                continue;
-                            case PieceType.Knight:
-                                count[PieceType.Knight] += 1;
-                                continue;
-                            case PieceType.Bishop:
-                                count[PieceType.Bishop] += 1;
-                                continue;
-                            case PieceType.Rook:
-                                count[PieceType.Rook] += 1;
-                                continue;
-                            case PieceType.Queen:
-                                count[PieceType.Queen] += 1;
-                                continue;
-                        }
-                    }
-                }
-                return count;
-            }
-            else
-            {
-                IEnumerable<Position> blackPositions = board.PiecePositionsFor(CurrentPlayer);
-                IEnumerable<Piece> blackPieces = Position.GetPieces(blackPositions, board);
-                foreach (Piece piece in blackPieces)
-                {
-                    if (piece.Color == Player.Black)
-                    {
-                        switch (piece.Type)
-                        {
-                            case (PieceType.Pawn):
-                                count[PieceType.Pawn] += 1;
-                                continue;
-                            case PieceType.Knight:
-                                count[PieceType.Knight] += 1;
-                                continue;
-                            case PieceType.Bishop:
-                                count[PieceType.Bishop] += 1;
-                                continue;
-                            case PieceType.Rook:
-                                count[PieceType.Rook] += 1;
-                                continue;
-                            case PieceType.Queen:
-                                count[PieceType.Queen] += 1;
-                                continue;
-                        }
-                    }
-                }
-                return count;
-            }
-        }
 
         public IEnumerable<Move> AllLegalMoves(Player player)
         {
@@ -186,16 +122,6 @@ namespace ChessLogic
 
         private int GetPieceValue(PieceType type, Position pos)
         {
-            wp = len(board.pieces(chess.PAWN, chess.WHITE))
-            bp = len(board.pieces(chess.PAWN, chess.BLACK))
-            wn = len(board.pieces(chess.KNIGHT, chess.WHITE))
-            bn = len(board.pieces(chess.KNIGHT, chess.BLACK))
-            wb = len(board.pieces(chess.BISHOP, chess.WHITE))
-            bb = len(board.pieces(chess.BISHOP, chess.BLACK))
-            wr = len(board.pieces(chess.ROOK, chess.WHITE))
-            br = len(board.pieces(chess.ROOK, chess.BLACK))
-            wq = len(board.pieces(chess.QUEEN, chess.WHITE))
-            bq = len(board.pieces(chess.QUEEN, chess.BLACK))
             switch (type)
             {
                 case PieceType.Pawn: return pieceSquareScore[0, pos.Row * 8 + pos.Column];
@@ -211,6 +137,7 @@ namespace ChessLogic
         {
             int score = 0;
             Move bestMove = null;
+            Move maxMove = null;
             int bestScore = int.MinValue;
             List<Move> captures = new List<Move>();
 
@@ -218,10 +145,13 @@ namespace ChessLogic
             {
                 GameState copy = this.Copy();
                 move.Execute(copy.Board);
-                if (move.IsLegal(this.Board) && move.ToPos != null)
+                if (move.IsLegal(copy.Board) && move.ToPos != null)
                     captures.Add(move);
-                score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);  // Run minimax for Black's turn
-            
+                if (IsCheck(copy.Board, move))
+                    score = Minimax(copy, depth - 1, true, int.MinValue, int.MaxValue) + 15;  // Run minimax for White's turn
+                else
+                    score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);  // Run minimax for Black's turn
+                
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -229,25 +159,37 @@ namespace ChessLogic
                 }
             }
             if (captures.Count > 0)
-                bestMove = FindBestCapture(captures);
-            return bestMove;
+                maxMove = FindBestCapture(captures, bestScore);
+            if (maxMove == null && bestMove != null)
+                return bestMove;
+            return maxMove;
         }
 
-        public Move FindBestCapture(List<Move> captures)
+        public Move FindBestCapture(List<Move> captures, int bestScore)
         {
-            int bestScore = 0;
+            int maxScore = 0;
             Move bestMove = null;
             int score = 0;
             foreach (Move move in captures)
             {
                 score = GetPieceValue(getPieceFromPos(move.FromPos), move.ToPos);
-                if (score > bestScore)
+                if (score > maxScore)
                 {
-                    bestScore = score;
+                    maxScore = score;
                     bestMove = move;
                 }
             }
-            return bestMove;
+            if(maxScore >= bestScore)
+                return bestMove;
+            return null;
+        }
+
+        public bool IsCheck(Board board, Move move)
+        {
+            if (board == null) return false;
+            if (move == null) return false;
+            Board copy = board.Copy();
+            return copy.IsInCheck(CurrentPlayer);
         }
 
         private int Minimax(GameState state, int depth, bool isMaximizingPlayer, int alpha, int beta)

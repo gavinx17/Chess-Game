@@ -51,6 +51,5 @@ namespace ChessLogic
                 return piece != null && piece.Type == PieceType.King;
             });
         }
-
     }
 }
