@@ -47,7 +47,9 @@
 
         public static Position operator +(Position pos, Direction dir)
         {
-            return new Position(pos.Row + dir.RowDelta, pos.Column + dir.ColumnDelta);
+            Position result = new Position(pos.Row + dir.RowDelta, pos.Column + dir.ColumnDelta);
+            return result;
         }
+
     }
 }

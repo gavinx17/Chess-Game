@@ -52,7 +52,8 @@
             Position oneMovePos = from + forward;
             if (CanMoveTo(oneMovePos, board))
             {
-                if(oneMovePos.Row == 0 || oneMovePos.Row == 7)
+                Console.WriteLine($"Forward move: {from.Row},{from.Column} -> {oneMovePos.Row},{oneMovePos.Column}");
+                if (oneMovePos.Row == 0 || oneMovePos.Row == 7)
                 {
                     foreach (Move promMove in PromotionMoves(from, oneMovePos))
                         yield return promMove;
@@ -61,10 +62,11 @@
                 {
                     yield return new NormalMove(from, oneMovePos);
                 }
-                Position twoMovesPos = oneMovePos + forward;
 
-                if(!HasMoved && CanMoveTo(twoMovesPos, board))
+                Position twoMovesPos = oneMovePos + forward;
+                if (!HasMoved && CanMoveTo(twoMovesPos, board))
                 {
+                    Console.WriteLine($"Forward double move: {oneMovePos.Row},{oneMovePos.Column} -> {twoMovesPos.Row},{twoMovesPos.Column}");
                     yield return new NormalMove(from, twoMovesPos);
                 }
             }
@@ -72,11 +74,14 @@
 
         private IEnumerable<Move> DiagonalMoves(Position from, Board board)
         {
-            foreach(Direction dir in new Direction[] { Direction.East, Direction.West })
+            foreach (Direction dir in new Direction[] { Direction.NorthEast, Direction.NorthWest, Direction.SouthEast, Direction.SouthWest })
             {
-                Position to = from + forward + dir;
+                Position to = from + dir;
 
-                if(CanCaptureAt(to, board))
+                // Debug: Check if we are reaching the correct positions without recursion
+                Console.WriteLine($"Checking diagonal move: {from.Row},{from.Column} -> {to.Row},{to.Column}");
+
+                if (CanCaptureAt(to, board))
                 {
                     if (to.Row == 0 || to.Row == 7)
                     {
@@ -88,6 +93,9 @@
                 }
             }
         }
+
+
+
 
         public override IEnumerable<Move> GetMoves(Position from, Board board)
         {

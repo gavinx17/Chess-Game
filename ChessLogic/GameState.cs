@@ -20,10 +20,10 @@ namespace ChessLogic
             Board = board;
         }
 
-        public PieceType getPieceFromPos(Position pos)
+        public Piece getPieceFromPos(Position pos)
         {
             Piece piece = Board[pos.Row, pos.Column];
-            return piece.Type;
+            return piece;
         }
 
         public void NextTurn()
@@ -108,61 +108,96 @@ namespace ChessLogic
         {
             return Result != null;
         }
+        private static readonly Dictionary<PieceType, int> MaterialValues = new()
+        {
+            { PieceType.Pawn, 100 },
+            { PieceType.Knight, 320 },
+            { PieceType.Bishop, 330 },
+            { PieceType.Rook, 500 },
+            { PieceType.Queen, 900 },
+            { PieceType.King, 20000 }
+        };
+        private int GetEarlyGamePieceValue(Piece piece, Position pos)
+        {
+            if (piece == null) return 0; // Avoid null reference errors
+
+            switch (piece.Type)
+            {
+                case PieceType.Pawn:
+                    return EarlyGamePieceSquareScore[0, pos.Row * 8 + pos.Column] + 100;
+                case PieceType.Knight:
+                    return EarlyGamePieceSquareScore[1, pos.Row * 8 + pos.Column] + 320;
+                case PieceType.Bishop:
+                    return EarlyGamePieceSquareScore[2, pos.Row * 8 + pos.Column] + 330;
+                case PieceType.Rook:
+                    return EarlyGamePieceSquareScore[3, pos.Row * 8 + pos.Column] + 500;
+                case PieceType.Queen:
+                    return EarlyGamePieceSquareScore[4, pos.Row * 8 + pos.Column] + 900;
+                case PieceType.King:
+                    return EarlyGamePieceSquareScore[5, pos.Row * 8 + pos.Column] + 20000;
+                default:
+                    return 0;
+            }
+        }
+
         public int EvaluateBoard()
         {
             int score = 0;
             foreach (Position pos in Board.PiecePositions())
             {
                 Piece piece = Board[pos];
-                int pieceValue = GetPieceValue(piece.Type, pos);
-                score += pieceValue;
+                int pieceValue = MaterialValues[piece.Type] + GetEarlyGamePieceValue(piece, pos);
+                score += (piece.Color == Player.White) ? pieceValue : -pieceValue;
             }
             return score;
         }
 
-        private int GetPieceValue(PieceType type, Position pos)
+        private int GetPieceValue(PieceType type, Position pos, int gamePhase)
         {
-            switch (type)
+            int earlyValue = EarlyGamePieceSquareScore[(int)type, pos.Row * 8 + pos.Column];
+            int lateValue = EndGamePieceSquareScore[(int)type, pos.Row * 8 + pos.Column];
+            return (earlyValue * (24 - gamePhase) + lateValue * gamePhase) / 24; // Smooth transition
+        }
+        private int GetGamePhase()
+        {
+            int phase = 0;
+            foreach (Position pos in Board.PiecePositions())
             {
-                case PieceType.Pawn: return pieceSquareScore[0, pos.Row * 8 + pos.Column];
-                case PieceType.Knight: return pieceSquareScore[1, pos.Row * 8 + pos.Column];
-                case PieceType.Bishop: return pieceSquareScore[2, pos.Row * 8 + pos.Column];
-                case PieceType.Rook: return pieceSquareScore[3, pos.Row * 8 + pos.Column];
-                case PieceType.Queen: return pieceSquareScore[4, pos.Row * 8 + pos.Column];
-                case PieceType.King: return pieceSquareScore[5, pos.Row * 8 + pos.Column];
-                default: return 0;
+                Piece piece = Board[pos];
+                phase += (piece.Type == PieceType.Pawn) ? 0 : 1; // Pawns don’t contribute much to game phase
             }
+            return Math.Min(phase, 24); // Scale phase from 0 (opening) to 24 (endgame)
         }
         public Move GetBestMove(int depth)
         {
-            int score = 0;
             Move bestMove = null;
-            Move maxMove = null;
             int bestScore = int.MinValue;
-            List<Move> captures = new List<Move>();
 
-            foreach (Move move in GetAllLegalMoves())
+            IEnumerable<Move> moveEnumerable = GetAllLegalMoves()
+            .OrderByDescending(moveEnumerable => MoveHeuristic(moveEnumerable));
+            List<Move> moves = GetAllLegalMoves()
+            .OrderByDescending(moveEnumerable => MoveHeuristic(moveEnumerable))
+            .ToList();
+
+            foreach (Move move in moves)
             {
                 GameState copy = this.Copy();
                 move.Execute(copy.Board);
-                if (move.IsLegal(copy.Board) && move.ToPos != null)
-                    captures.Add(move);
-                if (IsCheck(copy.Board, move))
-                    score = Minimax(copy, depth - 1, true, int.MinValue, int.MaxValue) + 15;  // Run minimax for White's turn
-                else
-                    score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);  // Run minimax for Black's turn
-                
+                int score = Minimax(copy, depth - 1, false, int.MinValue, int.MaxValue);
+
                 if (score > bestScore)
                 {
                     bestScore = score;
                     bestMove = move;
                 }
             }
-            if (captures.Count > 0)
-                maxMove = FindBestCapture(captures, bestScore);
-            if (maxMove == null && bestMove != null)
-                return bestMove;
-            return maxMove;
+            return bestMove;
+        }
+
+        private int MoveHeuristic(Move move)
+        {
+            Piece capturedPiece = Board[move.ToPos]; // Get piece being captured
+            return capturedPiece != null ? MaterialValues[capturedPiece.Type] : 0; // Higher value moves are prioritized
         }
 
         public Move FindBestCapture(List<Move> captures, int bestScore)
@@ -172,7 +207,7 @@ namespace ChessLogic
             int score = 0;
             foreach (Move move in captures)
             {
-                score = GetPieceValue(getPieceFromPos(move.FromPos), move.ToPos);
+                score = GetEarlyGamePieceValue(getPieceFromPos(move.FromPos), move.ToPos);
                 if (score > maxScore)
                 {
                     maxScore = score;
@@ -197,38 +232,30 @@ namespace ChessLogic
             if (depth == 0 || state.IsGameOver())
                 return state.EvaluateBoard();
 
-            if (isMaximizingPlayer)
+            int bestEval = isMaximizingPlayer ? int.MinValue : int.MaxValue;
+            foreach (Move move in state.GetAllLegalMoves())
             {
-                int maxEval = int.MinValue;
-                foreach (Move move in state.GetAllLegalMoves())
+                GameState copy = state.Copy();
+                move.Execute(copy.Board);
+
+                int eval = Minimax(copy, depth - (move.IsCapture(copy.Board) ? 0 : 1), !isMaximizingPlayer, alpha, beta);
+                if (isMaximizingPlayer)
                 {
-                    GameState copy = state.Copy();
-                    move.Execute(copy.Board);
-                    int eval = Minimax(copy, depth - 1, false, alpha, beta);
-                    maxEval = Math.Max(maxEval, eval);
-                    alpha = Math.Max(alpha, maxEval);
-                    if (beta <= alpha)
-                        break;
+                    bestEval = Math.Max(bestEval, eval);
+                    alpha = Math.Max(alpha, bestEval);
                 }
-                return maxEval;
-            }
-            else
-            {
-                int minEval = int.MaxValue;
-                foreach (Move move in state.GetAllLegalMoves())
+                else
                 {
-                    GameState copy = state.Copy();
-                    move.Execute(copy.Board);
-                    int eval = Minimax(copy, depth - 1, true, alpha, beta);
-                    minEval = Math.Min(minEval, eval);
-                    beta = Math.Min(beta, minEval);
-                    if (beta <= alpha)
-                        break;
+                    bestEval = Math.Min(bestEval, eval);
+                    beta = Math.Min(beta, bestEval);
                 }
-                return minEval;
+
+                if (beta <= alpha)
+                    break;
             }
+            return bestEval;
         }
-        public static readonly int[,] pieceSquareScore = new int[6, 64]
+        public static readonly int[,] EarlyGamePieceSquareScore = new int[6, 64]
         {
             {   // Pawn
                 0,   0,   0,   0,   0,   0,  0,   0,
@@ -291,6 +318,68 @@ namespace ChessLogic
                 -15,  36,  12, -54,   8, -28,  24,  14
             }
     };
-
+        public static readonly int[,] EndGamePieceSquareScore = new int[6, 64]
+{
+    {   // Pawn (Endgame)
+        0,   0,   0,   0,   0,   0,  0,   0,
+        178, 173, 158, 134, 147, 132, 165, 187,
+        94,  100,  85,  67,  56,  53,  82,  84,
+        32,   24,  13,   5, -2,   4,  17,  17,
+        13,    9,  -3,  -7, -7,  -8,   3,  -1,
+        4,   7,   6,  -6, -10,  -3,  -9,  -2,
+        9,    8,   8,  -6, -3,  -9,  -4,  11,
+        0,   0,   0,   0,   0,   0,  0,   0
+    },
+    {   // Knight (Endgame)
+        -58, -38, -13, -28, -31, -27, -63, -99,
+        -25,  -8, -25,  -2,  -9, -25, -24, -52,
+        -24,  -20, 10,   9,  -1,  -9, -19, -41,
+        -17,    3,  22,  22,  22,  11,   8, -18,
+        -18,   -6,  16,  25,  16,  17,   4, -18,
+        -23,   -3,  -1,  15,  10,  -3,  -20, -22,
+        -42,  -20, -10,  -5,  -2, -20, -23, -44,
+        -29, -51, -23, -15, -22, -18, -50, -64
+    },
+    {   // Bishop (Endgame)
+        -14, -21, -11,  -8, -7, -9, -17, -24,
+        -8,   2,  -3,  -1, -2,  6,   0,  -9,
+        -6,   6,   9,   7,  6,  10,  3,  -9,
+        -3,   6,  13,   7, 10,  13,   3,  -7,
+        4,    7,   12,  18,  19,  12,  7,  -1,
+        -6,   0,   15,  25,  25,  15,   0, -8,
+        -8,  -5,  -7, -2, -6, -3, -5, -12,
+        -16, -14, -9, -8, -10, -13, -17, -21
+    },
+    {   // Rook (Endgame)
+        13,  10,  18,  15, 12,  12,   8,   5,
+        11,  13,  13,  11, -3,   3,   8,   3,
+        7,    7,   7,   5,   4,  -3, -5,  -3,
+        4,    3,  13,   1,   2,   1,  -1,   2,
+        3,    5,   8,   4,  -5,  -6,  -8, -11,
+        -4,   0,  -5, -1,  -7, -12,  -8, -16,
+        -6,  -6,   0,   2,  -9,  -9, -11,  -3,
+        -9,   2,   3,  -1,  -5,  -13,  4, -20
+    },
+    {   // Queen (Endgame)
+        -9,   22,  22,  27,  27,  19,  10,  20,
+        -17,  20,  32,  41,  58,  25,  30,   0,
+        -20,  12,  23,  45,  49,  56,  41,  12,
+        -16,  16,  23,  29,  32,  26,  24,  13,
+        -15,   7,  19,  24,  24,  25,   3, -12,
+        -8,   11,   3,  13,   7,  13,   9,  -2,
+        -12,  -6,   0,   8,   3,   7,  -5, -10,
+        -20,  -7, -15, -17, -25, -24, -20, -32
+    },
+    {   // King (Endgame)
+        -50, -30, -30, -50, -50, -30, -30, -50,
+        -30, -20, -10,   0,   0, -10, -20, -30,
+        -30, -10,  20,  30,  30,  20, -10, -30,
+        -30, -10,  30,  40,  40,  30, -10, -30,
+        -30, -10,  30,  40,  40,  30, -10, -30,
+        -30, -10,  20,  30,  30,  20, -10, -30,
+        -30, -20, -10,   0,   0, -10, -20, -30,
+        -50, -30, -30, -50, -50, -30, -30, -50
+    }
+};
     }
 }

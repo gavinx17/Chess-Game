@@ -22,6 +22,10 @@ namespace ChessLogic
             Execute(copy);
             return !copy.IsInCheck(player);
         }
+        public bool IsCapture(Board board)
+        {
+            return board[ToPos] != null; // If the destination square has a piece, it's a capture
+        }
 
     }
 }
